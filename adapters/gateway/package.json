@@ -1,0 +1,11 @@
+{
+  "name": "jev-triage-gateway-adapter",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Stub: Vercel AI Gateway + typesafe-ai/jev (activates when AI_GATEWAY_API_KEY set)",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "ai": "^7.0.105"
+  }
+}
