@@ -1,11 +1,11 @@
-# Jev triage eval — 2026-09-21 08:42 CST
+# Jev triage eval — 2026-09-21 09:13 CST
 
 - mode: `dry/heuristic`
 - samples: 220 (file `samples.jsonl`)
 - overall queue accuracy: **81.4%** (179/220)
-- auto-queue accuracy (pred needs_review=false): **89.4%** (127/142)
+- auto-queue accuracy (pred needs_review=false): **84.2%** (80/95)
 - false-auto rate (gold needs_review, pred auto): **0.0%** (0/47)
-- targets: auto-queue ≥ 80%; false-auto ≤ 5%; confidence < 0.55 → review
+- targets: auto-queue ≥ 80%; false-auto ≤ 5%; confidence < 0.85 → review
 
 ## Pass?
 - auto-queue accuracy ≥ 80%: PASS
@@ -32,8 +32,8 @@
 | s0010 | general | general | Y | True | True | 0.42 |
 | s0011 | abuse | general | N | False | False | 0.95 |
 | s0012 | abuse | abuse | Y | True | True | 0.42 |
-| s0013 | billing | billing | Y | False | False | 0.95 |
-| s0014 | shipping | shipping | Y | False | False | 0.81 |
+| s0013 | billing | billing | Y | False | True | 0.95 |
+| s0014 | shipping | shipping | Y | False | True | 0.81 |
 | s0015 | billing | billing | Y | False | False | 0.95 |
 | s0016 | billing | billing | Y | False | False | 0.95 |
 | s0017 | account_access | account_access | Y | False | False | 0.95 |
@@ -44,10 +44,10 @@
 | s0022 | shipping | shipping | Y | False | False | 0.95 |
 | s0023 | general | general | Y | False | False | 0.95 |
 | s0024 | general | general | Y | True | True | 0.42 |
-| s0025 | abuse | abuse | Y | False | False | 0.95 |
+| s0025 | abuse | abuse | Y | False | True | 0.95 |
 | s0026 | abuse | abuse | Y | True | True | 0.42 |
-| s0027 | billing | billing | Y | False | False | 0.95 |
-| s0028 | shipping | shipping | Y | False | False | 0.81 |
+| s0027 | billing | billing | Y | False | True | 0.95 |
+| s0028 | shipping | shipping | Y | False | True | 0.81 |
 | s0029 | billing | billing | Y | False | False | 0.95 |
 | s0030 | billing | billing | Y | False | False | 0.95 |
 | s0031 | account_access | account_access | Y | False | False | 0.95 |
@@ -58,11 +58,11 @@
 | s0036 | shipping | shipping | Y | False | True | 0.50 |
 | s0037 | general | general | Y | False | False | 0.95 |
 | s0038 | general | general | Y | True | True | 0.42 |
-| s0039 | abuse | abuse | Y | False | False | 0.95 |
+| s0039 | abuse | abuse | Y | False | True | 0.95 |
 | s0040 | abuse | abuse | Y | True | True | 0.42 |
-| s0041 | billing | billing | Y | False | False | 0.95 |
-| s0042 | shipping | shipping | Y | False | False | 0.81 |
-| s0043 | billing | billing | Y | False | False | 0.95 |
+| s0041 | billing | billing | Y | False | True | 0.95 |
+| s0042 | shipping | shipping | Y | False | True | 0.81 |
+| s0043 | billing | billing | Y | False | True | 0.95 |
 | s0044 | billing | billing | Y | False | False | 0.95 |
 | s0045 | account_access | account_access | Y | False | False | 0.95 |
 | s0046 | account_access | general | N | True | True | 0.50 |

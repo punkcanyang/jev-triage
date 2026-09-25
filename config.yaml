@@ -1,9 +1,9 @@
 # Jev triage — local demo config (no secrets)
 model: jev-latest
-# Prefer TypeSafe Python SDK until AI_GATEWAY_API_KEY is present
-backend: typesafe  # typesafe | gateway | dry
+# TypeSafe only (Gateway abandoned 2026-09-21)
+backend: typesafe  # typesafe | dry  (gateway abandoned)
 thresholds:
-  min_confidence: 0.55   # below → needs_review
+  min_confidence: 0.85   # below → needs_review (raised to cut false-auto)
   # Acceptance targets (eval reports)
   auto_queue_accuracy_min: 0.80
   false_auto_max: 0.05

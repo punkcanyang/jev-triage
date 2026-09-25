@@ -41,6 +41,18 @@ def _noul_payload(noul: float | None, confidence: float | None = None) -> dict[s
     }
 
 
+def _ambiguous_text(text: str) -> bool:
+    t = (text or "").lower()
+    markers = (
+        "不确定", "不知道", "算不算", "有点奇怪", "maybe", "not sure",
+        "feels off", "something feels", "possible tos", "不清楚", "找谁",
+        "unsure", "ambiguous", "数字对不上", "不对劲", "weird", "strange",
+        "how do i add a teammate", "passkey", "permissions?",
+        "修改绑定", "手机号", "步骤发一下", "如何修改",
+    )
+    return any(m in t for m in markers)
+
+
 def _finalize(
     *,
     queue: str,
@@ -55,12 +67,25 @@ def _finalize(
     backend: str = "typesafe",
     model: str | None = None,
     dry_run: bool = False,
+    text: str | None = None,
 ) -> dict[str, Any]:
     needs_review = confidence < min_confidence
-    # High-stakes signals also force review when model is unsure about them
+    # High-stakes / ambiguous → human review (cut false-auto)
+    if queue == "abuse":
+        needs_review = True
+    if escalate_noul is not None and escalate_noul >= 0.45:
+        needs_review = True
     if refund_noul is not None and 0.35 <= refund_noul <= 0.65 and (refund_conf or confidence) < 0.7:
         needs_review = True
     if escalate_noul is not None and escalate_noul >= 0.5 and confidence < 0.7:
+        needs_review = True
+    if queue_probabilities:
+        ranked = sorted((float(v) for v in queue_probabilities.values()), reverse=True)
+        if ranked and ranked[0] < 0.90:
+            needs_review = True
+        if len(ranked) >= 2 and (ranked[0] - ranked[1]) < 0.18:
+            needs_review = True
+    if text and _ambiguous_text(text):
         needs_review = True
 
     out: dict[str, Any] = {
@@ -191,12 +216,13 @@ def _heuristic_classify(text: str, min_confidence: float) -> dict[str, Any]:
         backend="dry",
         model=None,
         dry_run=True,
+        text=text,
     )
 
 
 def _typesafe_classify(text: str, cfg: dict[str, Any]) -> dict[str, Any]:
     # Prefer shared typesafe-venv if present
-    venv_site = Path("/workspace/tools/typesafe-venv/lib/python3.13/site-packages")
+    venv_site = Path(os.environ.get("TYPESAFE_VENV_SITE") or "")
     if venv_site.is_dir():
         import sys
 
@@ -283,7 +309,53 @@ def _typesafe_classify(text: str, cfg: dict[str, Any]) -> dict[str, Any]:
         backend="typesafe",
         model=getattr(result, "model", None) or model,
         dry_run=False,
+        text=text,
     )
+
+
+
+def _gateway_classify_via_cli(text: str, cfg: dict[str, Any]) -> dict[str, Any]:
+    """Shell out to Node Gateway adapter (never prints keys)."""
+    import json
+    import subprocess
+
+    if not os.environ.get("AI_GATEWAY_API_KEY"):
+        # optional: BOX_SECRETS_JSON path with .card.AI_GATEWAY_API_KEY (local only)
+        secrets = Path(os.environ.get("BOX_SECRETS_JSON") or "")
+        if secrets.is_file():
+            try:
+                data = json.loads(secrets.read_text(encoding="utf-8"))
+                v = (data.get("card") or {}).get("AI_GATEWAY_API_KEY")
+                if isinstance(v, str) and v.strip():
+                    os.environ["AI_GATEWAY_API_KEY"] = v.strip()
+            except Exception:
+                pass
+    if not os.environ.get("AI_GATEWAY_API_KEY"):
+        raise RuntimeError(
+            "backend=gateway but AI_GATEWAY_API_KEY is missing. "
+            "Use backend=typesafe (TYPESAFE_API_KEY) or dry_run=True. "
+            "See adapters/gateway/ and README."
+        )
+
+    node = os.environ.get("NODE_BIN") or str(
+        Path.home() / ".local/node/current/bin/node"
+    )
+    script = ROOT / "adapters" / "gateway" / "classify.mjs"
+    env = os.environ.copy()
+    # ensure child sees key; do not log
+    proc = subprocess.run(
+        [node, str(script), text],
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=120,
+        cwd=str(ROOT),
+    )
+    if proc.returncode != 0:
+        err = (proc.stderr or proc.stdout or "gateway cli failed").strip().splitlines()
+        msg = err[-1] if err else "gateway cli failed"
+        raise RuntimeError(msg[:400])
+    return json.loads(proc.stdout)
 
 
 def classify(
@@ -298,7 +370,7 @@ def classify(
 
     backend resolution:
       - dry_run=True → heuristic dry
-      - backend='gateway' → raises (use Node stub when AI_GATEWAY_API_KEY set)
+      - backend='gateway' → Node adapters/gateway/classify.mjs via CLI
       - else typesafe live if TYPESAFE_API_KEY set, else dry
     """
     if not (text or "").strip():
@@ -312,17 +384,7 @@ def classify(
         return _heuristic_classify(text, min_conf)
 
     if be == "gateway":
-        if not os.environ.get("AI_GATEWAY_API_KEY"):
-            raise RuntimeError(
-                "backend=gateway but AI_GATEWAY_API_KEY is missing. "
-                "Use backend=typesafe (TYPESAFE_API_KEY) or dry_run=True. "
-                "See adapters/gateway/ and README."
-            )
-        raise RuntimeError(
-            "Python classify() does not call Gateway yet. "
-            "Use adapters/gateway (Node) when AI_GATEWAY_API_KEY is set, "
-            "or backend=typesafe."
-        )
+        return _gateway_classify_via_cli(text, cfg)
 
     # typesafe (default)
     if not os.environ.get("TYPESAFE_API_KEY"):

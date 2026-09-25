@@ -1,21 +1,41 @@
-# Jev triage MVP (ticket / email → JSON)
+# Jev triage
 
-Local demo under `/workspace/saas-scout/jev-triage`. **Classify only** — no customer reply drafting, no buyer LLM keys.
+<p align="center">
+  <img src="./docs/readme-assets/hero.svg" width="100%" alt="Jev triage: classify tickets into six queues; live TypeSafe n=220 metrics">
+</p>
 
-Grok session: `01a0c168-c41a-7761-aff2-c04fc8d64065` (title `jev-triage`). Resume: `grok --resume 01a0c168-c41a-7761-aff2-c04fc8d64065` or `grok -c`. **No Fast.**
+本地 MVP：**邮件／工单 → 结构化 JSON 分流**。只分类，不代写客服回复，不收集买家 LLM Key。
 
-## Queues (fixed 6)
+生产／自用只走 **TypeSafe 直连**（环境变量 `TYPESAFE_API_KEY`）。**Gateway 已放弃**（`adapters/gateway/` 保留但不维护）。
+
+## 证明（真实评测）
+
+来源：`reports/eval-typesafe-live-full.md`（live / TypeSafe，`samples.jsonl`，**n=220**）
+
+| 指标 | 结果 | 目标 |
+|------|------|------|
+| Overall queue accuracy | **88.2%**（194/220） | — |
+| Auto-queue accuracy（`needs_review=false`） | **99.2%**（118/119） | ≥ 80% |
+| False-auto（金标需人工却被自动） | **0.0%**（0/47） | ≤ 5% |
+
+Dry／heuristic 同集：overall 81.4%、auto-queue 84.2%、false-auto 0.0%（见 `reports/eval-latest.md`）。
+
+<p align="center">
+  <img src="./docs/readme-assets/output-shape.svg" width="100%" alt="Example JSON output with queue urgency refund confidence needs_review">
+</p>
+
+## 六队列（固定）
 
 | queue | when |
 |-------|------|
-| `billing` | charges, invoices, subscriptions, money refunds |
-| `account_access` | login, password, 2FA, locked account, SSO |
-| `product_bug` | crashes, defects, regressions, errors |
-| `shipping` | tracking, lost/wrong packages, fulfillment |
-| `general` | how-to, feature requests, unclear non-urgent |
-| `abuse` | harassment, fraud, ToS, safety |
+| `billing` | 扣款、发票、订阅、退款 |
+| `account_access` | 登录、密码、2FA、锁定、SSO |
+| `product_bug` | 崩溃、缺陷、回归、报错 |
+| `shipping` | 物流、丢件、错件、履约 |
+| `general` | 用法、功能请求、非紧急不清 |
+| `abuse` | 骚扰、欺诈、ToS、安全 |
 
-## Output JSON
+## 输出 JSON
 
 ```json
 {
@@ -28,82 +48,52 @@ Grok session: `01a0c168-c41a-7761-aff2-c04fc8d64065` (title `jev-triage`). Resum
 }
 ```
 
-## Thresholds (acceptance)
+低置信：`confidence` 低于阈值 → `needs_review=true`（验收表与报告以仓库配置／评测为准）。
 
-| metric | target |
-|--------|--------|
-| Auto-queue accuracy (among `needs_review=false`) | ≥ **80%** |
-| False-auto (gold `needs_review=true` but model auto) | ≤ **5%** |
-| Low confidence | `confidence` **&lt; 0.55** → `needs_review=true` |
-
-## Backends
+## Backend
 
 | backend | when | notes |
 |---------|------|-------|
-| **TypeSafe Python SDK** `system_one` | `TYPESAFE_API_KEY` set (current box) | Working smoke path; venv `/workspace/tools/typesafe-venv` |
-| **Vercel AI Gateway** | `AI_GATEWAY_API_KEY` set | **MISSING now** — stub in `adapters/gateway/`; model `typesafe-ai/jev` only (no Fast) |
-| **dry / heuristic** | `--dry-run` or no key | Offline keyword classifier for eval smoke |
+| **TypeSafe Python SDK** `system_one` | 已设 `TYPESAFE_API_KEY` | 当前主路径 |
+| **dry / heuristic** | `--dry-run` 或无 Key | 离线关键词，评测 smoke |
+| Vercel AI Gateway | — | **已放弃**；代码留在 `adapters/gateway/` |
 
-**Gateway blocker:** do not invent keys. When key arrives: Node `ai` ≥7.0.105 `experimental_evaluate`, Bearer auth, optional REST `POST https://ai-gateway.vercel.sh/typesafe/v1/systemone`. See https://vercel.com/kb/guide/typesafe-jev-and-ai-sdk
-
-## Setup
+## Setup & classify
 
 ```bash
-export PATH="/workspace/tools/typesafe-venv/bin:$HOME/.local/node/current/bin:$HOME/.local/bin:$PATH"
-cd /workspace/saas-scout/jev-triage
-# TYPESAFE_API_KEY must be in env for --live (never print it)
-```
+# 确保 Node／venv 在 PATH 中；TYPESAFE_API_KEY 已在环境（不要打印）
+cd /path/to/jev-triage
 
-## Classify
-
-```bash
-# dry
 python scripts/classify_cli.py --dry-run "I was charged twice, please refund."
-
-# live TypeSafe
 python scripts/classify_cli.py --live "I was charged twice, please refund."
-
-# stdin
 echo "无法登录，密码重置邮件收不到" | python scripts/classify_cli.py --dry-run
 ```
 
 ## Eval
 
 ```bash
-# smoke (default limit 20, dry)
 python scripts/eval.py --dry-run --limit 20
-
-# full 200+ dry
 python scripts/eval.py --all --dry-run
-
-# live smoke / full (API cost)
 python scripts/eval.py --live --limit 10
 python scripts/eval.py --live --limit 200
 ```
 
-Report: `reports/eval-latest.md`
+报告：`reports/eval-latest.md`（及 `eval-typesafe-live-full.md` 等）。
 
-## Samples
+样本：`data/samples.jsonl`（≥200 条中英合成／公开风格工单，已脱敏）。再生：`python scripts/gen_samples.py`。
 
-`data/samples.jsonl` — ≥200 synthetic+public-style CN/EN tickets with human labels:
-`queue`, `urgency` / `urgency_bin`, `refund`, `escalate`, `needs_review`. Desensitized.
+## 目录
 
-Regenerate: `python scripts/gen_samples.py`
-
-## Layout
-
-```
+```text
 config.yaml
-src/classify.py          # classify(text) → dict
-scripts/classify_cli.py
-scripts/eval.py
-scripts/gen_samples.py
+src/classify.py
+scripts/classify_cli.py  eval.py  gen_samples.py
 data/samples.jsonl
-reports/eval-latest.md
-adapters/gateway/        # Node stub (key missing)
+reports/
+adapters/gateway/          # abandoned
 TASK.md
 ```
 
 ## Not in scope
 
-Auto-replies, Zendesk, collecting ChatGPT/Claude keys, public repo, Fast models.
+自动回复、Zendesk、代持 ChatGPT/Claude Key、公开仓、Fast 模型。
