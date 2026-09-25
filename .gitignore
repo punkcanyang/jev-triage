@@ -10,3 +10,7 @@ adapters/gateway/node_modules/
 !.env.example
 box-secrets.json
 **/secrets*.json
+notes/
+*.pem
+box-secrets*
+typesafe-venv/

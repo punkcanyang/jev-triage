@@ -1,14 +1,14 @@
 # Jev 工单／邮件分流 · 任务卡
 
-更新日期：2026-09-21（上海）  
-状态：Gateway wired；live eval **blocked** by Vercel credit-card verification  
-备注：Gateway abandoned；key only via env if ever needed；Grok session unchanged (`(local Grok session)`)  
+更新日期：2026-09-21（上海） 
+状态：Gateway wired；live eval **blocked** by Vercel credit-card verification 
+备注：Gateway abandoned；key only via env if ever needed；Grok session unchanged (`(local Grok session)`) 
 来源：商务拓展交接；老板口头「好像可以」；两周自用、$0；Chatseek 不砍。
 
 ## Grok session
 - session id：`(local Grok session)`
 - 标题：`jev-triage`
-- 续作：`cd /path/to/jev-triage && grok --resume 01a0c168-c41a-7761-aff2-c04fc8d64065` 或 `grok -c`
+- 续作：`cd /path/to/jev-triage && grok -c` 
 - 禁止：同一任务每轮新开；禁止 Fast（`default_reasoning_effort=high`；Gateway 勿设 `speed:'fast'` / `*-fast` slug）
 - 备注：kickoff 用 `grok -p` 非交互拿 session id；MVP 实现由 executor 在同目录落地（产品 READY 优先）
 
@@ -28,7 +28,7 @@
 5. README 写达标阈值；不达标就停（不上转发邮箱壳）
 
 ## 不做
-自动回复、Zendesk 全家桶、收用户 ChatGPT／Claude Key、上架／收费、公开仓（除非老板另说）
+自动回复、Zendesk 全家桶、收用户 ChatGPT／Claude Key、上架／收费、公开仓已开（2026-09-25）
 
 ## 阻塞
 - Gateway：**已放弃**（老板 2026-09-21）。只走 TypeSafe 直连。
