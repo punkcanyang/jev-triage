@@ -8,6 +8,8 @@
 
 生产／自用只走 **TypeSafe 直连**（环境变量 `TYPESAFE_API_KEY`）。**Gateway 已放弃**（`adapters/gateway/` 保留但不维护）。
 
+作者：[@punkcan](https://x.com/punkcan)
+
 ## 证明（真实评测）
 
 来源：`reports/eval-typesafe-live-full.md`（live / TypeSafe，`samples.jsonl`，**n=220**）
